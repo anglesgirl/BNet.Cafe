@@ -115,6 +115,15 @@ jobs:
           Write-Host "MariaDB MSI: $($f.Length) bytes"
           if ($f.Length -lt 50000000) { throw "MariaDB MSI suspiciously small, download may have failed." }
 
+      # IIS Express: fallback web server for Windows Home (no full IIS there).
+      - name: Download IIS Express MSI
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://download.microsoft.com/download/C/E/8/CE8D18F5-D4C0-45B5-B531-ADECD637A1AA/iisexpress_amd64_en-US.msi" -OutFile "installer/redist/iisexpress_amd64_en-US.msi"
+          $f = Get-Item "installer/redist/iisexpress_amd64_en-US.msi"
+          Write-Host "IIS Express MSI: $($f.Length) bytes"
+          if ($f.Length -lt 5000000) { throw "IIS Express MSI suspiciously small, download may have failed." }
+
       - name: Install Inno Setup
         run: choco install innosetup -y --no-progress
 

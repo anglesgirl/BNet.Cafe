@@ -2,13 +2,14 @@
 ; 给网吧老板用的：双击，下一步，等几分钟，装完打开管理后台注册账号就能用。
 ; 安装器自动做：开 IIS + ASP.NET、装 MariaDB（随机 root 密码）、建网站（2000 端口）、
 ; 放行防火墙（2000/2050）、WebSocket 开机自启、数据库密码写进 Web.config。
-; 要求：Windows 10/11 专业版或服务器版（家庭版没有 IIS，装不了）+ 管理员权限 + 联网（仅首次装 .NET 时需要）。
+; 要求：Windows 10/11（专业版用完整 IIS，家庭版自动改用 IIS Express）+ 管理员权限 + 联网（仅首次装 .NET 时需要）。
 ; 编译：CI 里 choco 安装 Inno Setup 后 iscc 本文件；MariaDB MSI 由 CI 先下载到 installer\redist\。
 
 #define AppName "BNet Cafe"
 #define AppVersion "1.0.0"
 #define AppPublisher "BNet Cafe Fork"
 #define MariaDbMsi "mariadb-11.4.5-winx64.msi"
+#define IisExpressMsi "iisexpress_amd64_en-US.msi"
 
 [Setup]
 AppId={{BNetCafe-OneClick-20261121}
@@ -49,6 +50,8 @@ Source: "Setup-BNetCafe.ps1"; DestDir: "{app}"; Flags: ignoreversion
 Source: "README-安装说明.md"; DestDir: "{app}"; Flags: ignoreversion isreadme
 ; MariaDB 安装包（CI 下载到 redist\，本地编译请先手动下载一份放这里）
 Source: "redist\{#MariaDbMsi}"; DestDir: "{app}\redist"; Flags: ignoreversion
+; IIS Express 安装包（家庭版兜底用；CI 下载到 redist\）
+Source: "redist\{#IisExpressMsi}"; DestDir: "{app}\redist"; Flags: ignoreversion
 
 [Icons]
 Name: "{autodesktop}\BNet Cafe 管理后台"; Filename: "http://localhost:2000/BNet.Cafe.Server/Login.aspx"
@@ -57,8 +60,8 @@ Name: "{group}\BNet Cafe 管理后台"; Filename: "http://localhost:2000/BNet.Ca
 Name: "{group}\卸载 BNet Cafe"; Filename: "{uninstallexe}"
 
 [Run]
-; 核心配置：IIS + MariaDB + 网站 + 防火墙 + WebSocket 自启（约 3 分钟，界面会停在这一步等它跑完）
-Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\Setup-BNetCafe.ps1"" -InstallDir ""{app}"" -MariaDbMsi ""{app}\redist\{#MariaDbMsi}"""; StatusMsg: "正在配置 IIS、数据库和服务（约 3 分钟，请稍候）…"; Flags: runhidden waituntilterminated
+; 核心配置：IIS（或 IIS Express）+ MariaDB + 网站 + 防火墙 + WebSocket 自启（约 3 分钟，界面会停在这一步等它跑完）
+Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\Setup-BNetCafe.ps1"" -InstallDir ""{app}"" -MariaDbMsi ""{app}\redist\{#MariaDbMsi}"" -IisExpressMsi ""{app}\redist\{#IisExpressMsi}"""; StatusMsg: "正在配置网站、数据库和服务（约 3 分钟，请稍候）…"; Flags: runhidden waituntilterminated
 ; 装完打开管理后台（注册第一个管理员账号）
 Filename: "http://localhost:2000/BNet.Cafe.Server/Login.aspx"; Description: "打开管理后台"; Flags: postinstall shellexec skipifsilent
 

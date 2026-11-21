@@ -1,15 +1,19 @@
 # BNet Cafe 一键安装 — 安装后配置脚本
 # 由 Inno Setup 安装器以管理员身份调用。
-# 做四件事：开 IIS、装 MariaDB、建网站、开防火墙 + WebSocket 开机自启。
+# 做四件事：开网站服务器、装 MariaDB、建网站、开防火墙 + WebSocket 开机自启。
+# 网站服务器：优先用完整 IIS（DISM 开，专业版/服务器版）；家庭版没有 IIS 时
+# 自动改用 IIS Express（捆绑的 MSI，全部 Windows 版本都能装）。
 # 参数：
 #   -InstallDir  安装目录，例如 C:\BNetCafe
 #   -DbPassword  MariaDB root 密码（安装器随机生成），同时写入 Server\Web.config
 #   -MariaDbMsi  捆绑的 MariaDB MSI 路径
+#   -IisExpressMsi  捆绑的 IIS Express MSI 路径（家庭版兜底用）
 # 日志写到 $InstallDir\Setup-Log.txt，装完打不开先看它。
 param(
     [Parameter(Mandatory = $true)][string]$InstallDir,
     [Parameter(Mandatory = $false)][string]$DbPassword = "",
-    [Parameter(Mandatory = $true)][string]$MariaDbMsi
+    [Parameter(Mandatory = $true)][string]$MariaDbMsi,
+    [Parameter(Mandatory = $true)][string]$IisExpressMsi
 )
 
 $ErrorActionPreference = "Stop"
@@ -31,7 +35,9 @@ if ([string]::IsNullOrEmpty($DbPassword)) {
 }
 Log "BNet Cafe 安装配置开始，目录=$InstallDir"
 
-# ---------- 1. 开 IIS（含 ASP.NET 4.8） ----------
+# ---------- 1. 网站服务器：先试完整 IIS，不行再用 IIS Express ----------
+# 完整 IIS 只有专业版/服务器版有；家庭版 DISM 会失败，这时改用 IIS Express。
+$useIisExpress = $false
 Log "正在启用 IIS + ASP.NET 4.8（第一次可能要几分钟）…"
 $features = @(
     "IIS-WebServerRole", "IIS-WebServer", "IIS-CommonHttpFeatures",
@@ -43,10 +49,23 @@ $features = @(
 )
 $featArgs = ($features | ForEach-Object { "/featurename:$_" }) -join " "
 $proc = Start-Process -FilePath "dism.exe" -ArgumentList "/online /enable-feature $featArgs /all /norestart" -Wait -PassThru -NoNewWindow
-if ($proc.ExitCode -ne 0 -and $proc.ExitCode -ne 3010) {
-    throw "启用 IIS 失败，dism 退出码=$($proc.ExitCode)。如果是家庭版 Windows（没有 IIS），请换专业版/服务器版系统再装。"
+$appcmd = Join-Path $env:windir "System32\inetsrv\appcmd.exe"
+if (($proc.ExitCode -eq 0 -or $proc.ExitCode -eq 3010) -and (Test-Path $appcmd)) {
+    Log "完整 IIS 已启用。"
+} else {
+    Log "完整 IIS 启用失败（dism 退出码=$($proc.ExitCode)，多半是家庭版没有 IIS），改用 IIS Express。"
+    $useIisExpress = $true
+    $iisExpressExe = Join-Path ${env:ProgramFiles} "IIS Express\iisexpress.exe"
+    if (-not (Test-Path $iisExpressExe)) {
+        if (-not (Test-Path $IisExpressMsi)) { throw "找不到 IIS Express 安装包：$IisExpressMsi" }
+        Log "正在安装 IIS Express…"
+        $proc = Start-Process -FilePath "msiexec.exe" -ArgumentList "/i `"$IisExpressMsi`" /qn /norestart" -Wait -PassThru -NoNewWindow
+        if ($proc.ExitCode -ne 0) { throw "安装 IIS Express 失败，msiexec 退出码=$($proc.ExitCode)" }
+        Log "IIS Express 已安装。"
+    } else {
+        Log "IIS Express 已存在，跳过安装。"
+    }
 }
-Log "IIS 已启用。"
 
 # ---------- 2. 装 MariaDB（root 密码随机，服务名 BNetMariaDB） ----------
 $svc = Get-Service -Name "BNetMariaDB" -ErrorAction SilentlyContinue
@@ -86,21 +105,54 @@ if (Test-Path $webConfig) {
     throw "找不到 Server\Web.config：$webConfig"
 }
 
-# ---------- 4. 建 IIS 网站 BNetCafe（2000 端口） ----------
-$appcmd = Join-Path $env:windir "System32\inetsrv\appcmd.exe"
-if (-not (Test-Path $appcmd)) { throw "找不到 appcmd.exe，IIS 可能没装好。" }
+# ---------- 4. 建网站 BNetCafe（2000 端口） ----------
 $serverPath = Join-Path $InstallDir "Server"
-$existingSite = & $appcmd list site "BNetCafe" 2>$null
-if ([string]::IsNullOrWhiteSpace($existingSite)) {
-    & $appcmd add apppool /name:"BNetCafe" /managedRuntimeVersion:"v4.0" /managedPipelineMode:"Integrated" | Out-Null
-    & $appcmd add site /name:"BNetCafe" /bindings:"http/*:2000:" /physicalPath:"$serverPath" | Out-Null
-    & $appcmd set app "BNetCafe/" /applicationPool:"BNetCafe" | Out-Null
-    Log "IIS 网站 BNetCafe 已建（http://localhost:2000/BNet.Cafe.Server/）。"
+if (-not $useIisExpress) {
+    # 完整 IIS：用 appcmd 建应用池 + 网站
+    if (-not (Test-Path $appcmd)) { throw "找不到 appcmd.exe，IIS 可能没装好。" }
+    $existingSite = & $appcmd list site "BNetCafe" 2>$null
+    if ([string]::IsNullOrWhiteSpace($existingSite)) {
+        & $appcmd add apppool /name:"BNetCafe" /managedRuntimeVersion:"v4.0" /managedPipelineMode:"Integrated" | Out-Null
+        & $appcmd add site /name:"BNetCafe" /bindings:"http/*:2000:" /physicalPath:"$serverPath" | Out-Null
+        & $appcmd set app "BNetCafe/" /applicationPool:"BNetCafe" | Out-Null
+        Log "IIS 网站 BNetCafe 已建（http://localhost:2000/BNet.Cafe.Server/）。"
+    } else {
+        & $appcmd set site "BNetCafe" /physicalPath:"$serverPath" | Out-Null
+        Log "IIS 网站 BNetCafe 已存在，路径已更新。"
+    }
+    & $appcmd start site "BNetCafe" | Out-Null
 } else {
-    & $appcmd set site "BNetCafe" /physicalPath:"$serverPath" | Out-Null
-    Log "IIS 网站 BNetCafe 已存在，路径已更新。"
+    # IIS Express：拷一份自带模板配置，改成我们的站（*:2000，局域网也能访问），开机自启
+    $iisExpressExe = Join-Path ${env:ProgramFiles} "IIS Express\iisexpress.exe"
+    $templateCfg = Join-Path ${env:ProgramFiles} "IIS Express\config\templates\PersonalWebServer\applicationhost.config"
+    $expressDir = Join-Path $InstallDir "iisexpress"
+    New-Item -ItemType Directory -Force -Path $expressDir | Out-Null
+    $siteCfg = Join-Path $expressDir "applicationhost.config"
+    if (-not (Test-Path $templateCfg)) { throw "找不到 IIS Express 配置模板：$templateCfg" }
+    Copy-Item $templateCfg $siteCfg -Force
+    [xml]$cfg = Get-Content $siteCfg -Encoding UTF8
+    $site = $cfg.SelectSingleNode("//system.applicationHost/sites/site[1]")
+    if ($null -eq $site) { throw "IIS Express 配置模板里没有 site 节点，无法配置。" }
+    $site.SetAttribute("name", "BNetCafe")
+    $app = $site.SelectSingleNode("application")
+    if ($null -ne $app) { $app.SetAttribute("applicationPool", "Clr4IntegratedAppPool") }
+    $vdir = $site.SelectSingleNode("application/virtualDirectory")
+    if ($null -ne $vdir) { $vdir.SetAttribute("physicalPath", $serverPath) }
+    $binding = $site.SelectSingleNode("bindings/binding")
+    if ($null -ne $binding) { $binding.SetAttribute("bindingInformation", "*:2000:") }
+    $cfg.Save($siteCfg)
+    # 局域网访问要放行 URL 保留（SYSTEM 跑本可不加，加上更稳）
+    netsh http add urlacl url=http://*:2000/ user=Everyone 2>$null | Out-Null
+    # 开机自启：计划任务跑 iisexpress（SYSTEM，最高权限）
+    $expressLauncher = Join-Path $expressDir "Start-IisExpress.bat"
+    Set-Content -Path $expressLauncher -Value "@echo off`r`ncd /d %~dp0`r`nstart `"`" /min `"$iisExpressExe`" /config:`"$siteCfg`" /site:BNetCafe" -Encoding ASCII
+    $expressTask = "BNetCafe IIS Express"
+    schtasks /delete /tn "$expressTask" /f 2>$null | Out-Null
+    schtasks /create /tn "$expressTask" /tr "`"$expressLauncher`"" /sc onstart /ru SYSTEM /rl HIGHEST /f | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "创建 IIS Express 开机任务失败。" }
+    schtasks /run /tn "$expressTask" | Out-Null
+    Log "IIS Express 网站 BNetCafe 已建并启动（http://localhost:2000/BNet.Cafe.Server/，局域网可访问）。"
 }
-& $appcmd start site "BNetCafe" | Out-Null
 
 # ---------- 5. 防火墙放行 2000（网站）与 2050（WebSocket），供局域网客户机访问 ----------
 foreach ($port in @(2000, 2050)) {
