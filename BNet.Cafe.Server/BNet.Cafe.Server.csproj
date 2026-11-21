@@ -158,6 +158,8 @@
     <Content Include="Assets\BNetModal\Script.js" />
     <Content Include="Assets\BNetModal\Style.css" />
     <Content Include="Assets\Pages\RemoteMessaging.js" />
+    <Content Include="Assets\Pages\WallPaper.css" />
+    <Content Include="Assets\Pages\WallPaper.js" />
     <Content Include="Assets\Portal\Script.js" />
     <Content Include="Assets\Portal\Style.css" />
     <Content Include="Assets\ResetPassword\Script.js" />
@@ -241,6 +243,7 @@
     <Content Include="Forms\UserBonus.ascx" />
     <Content Include="Offline Packages\zxing\zxing.dll" />
     <Content Include="ServerChat.html" />
+    <Content Include="remote.html" />
     <Content Include="Shop.aspx" />
     <Content Include="temp_files\Barcodes\placeholder.txt" />
     <Content Include="temp_files\QRCodes\placeholder.txt" />
@@ -304,6 +307,7 @@
     <Content Include="Forms\UserEdit.ascx" />
     <Content Include="Forms\Users.ascx" />
     <Content Include="Forms\UserTopUp.ascx" />
+    <Content Include="Forms\WallPaper.ascx" />
     <Content Include="Offline Packages\Newtonsoft.Json\Newtonsoft.Json.dll" />
     <Content Include="Offline Packages\RestSharp\RestSharp.dll" />
     <Content Include="Offline Packages\System.Runtime.Caching\System.Configuration.ConfigurationManager.dll" />
@@ -763,6 +767,13 @@
     </Compile>
     <Compile Include="Forms\UserTopUp.ascx.designer.cs">
       <DependentUpon>UserTopUp.ascx</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\WallPaper.ascx.cs">
+      <DependentUpon>WallPaper.ascx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Forms\WallPaper.ascx.designer.cs">
+      <DependentUpon>WallPaper.ascx</DependentUpon>
     </Compile>
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
