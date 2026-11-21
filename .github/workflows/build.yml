@@ -34,6 +34,27 @@ jobs:
       - name: Build solution (Debug)
         run: msbuild BNet.Cafe.sln /p:Configuration=Debug /p:Platform="Any CPU" /verbosity:minimal
 
+      # Assemble a complete deployable Server web app: all web files
+      # (.aspx/.ashx/.js/.css/Web.config, plus the built bin/) minus source
+      # code (*.cs, *.csproj) and the obj/ build folder. The previous
+      # artifact was bin/ only, which is not deployable on its own.
+      - name: Package Server web app
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path server-package | Out-Null
+          $serverRoot = (Resolve-Path BNet.Cafe.Server).Path
+          Get-ChildItem -Path BNet.Cafe.Server -Recurse -File | Where-Object {
+            $_.FullName -notmatch '\\obj\\' -and
+            $_.Extension -notin '.cs', '.csproj', '.user', '.sln'
+          } | ForEach-Object {
+            $rel = $_.FullName.Substring($serverRoot.Length + 1)
+            $dest = Join-Path server-package $rel
+            New-Item -ItemType Directory -Force -Path (Split-Path $dest) | Out-Null
+            Copy-Item $_.FullName $dest -Force
+          }
+          Get-ChildItem server-package -Recurse -File |
+            Select-Object -First 5 FullName | ForEach-Object { Write-Host $_.FullName }
+
       - name: Upload Client
         uses: actions/upload-artifact@v4
         with:
@@ -45,7 +66,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: BNet.Cafe.Server-Debug
-          path: BNet.Cafe.Server/bin/
+          path: server-package/
           if-no-files-found: error
 
       - name: Upload WebSocket
