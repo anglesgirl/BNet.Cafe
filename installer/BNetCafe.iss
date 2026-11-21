@@ -29,7 +29,9 @@ UninstallDisplayIcon={app}\Client\BNet.Cafe.Client.exe
 WizardStyle=modern
 
 [Languages]
-Name: "chinese"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+; ChineseSimplified.isl is bundled in this repo (official Inno Setup 6.5+ translation):
+; the Chocolatey Inno Setup install does not ship it, so compiler:Languages\... fails.
+Name: "chinese"; MessagesFile: "ChineseSimplified.isl"
 
 [Files]
 ; 服务端网站（CI 打包的 server-package，去掉了源码）
