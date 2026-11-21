@@ -1,0 +1,55 @@
+name: Build
+
+on:
+  push:
+    branches: [main, feat/wechat-pay]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup NuGet
+        uses: nuget/setup-nuget@v2
+
+      - name: Restore NuGet packages
+        run: nuget restore BNet.Cafe.sln
+
+      # The Server references the WebSocket's built exe
+      # (..\BNet.Cafe.Websocket\bin\Debug\BNet.Cafe.Websocket.exe),
+      # so the WebSocket project must build first.
+      - name: Build WebSocket (Debug)
+        run: msbuild BNet.Cafe.Websocket/BNet.Cafe.Websocket.csproj /p:Configuration=Debug /p:Platform="Any CPU" /verbosity:minimal
+
+      - name: Build solution (Debug)
+        run: msbuild BNet.Cafe.sln /p:Configuration=Debug /p:Platform="Any CPU" /verbosity:minimal
+
+      - name: Upload Client
+        uses: actions/upload-artifact@v4
+        with:
+          name: BNet.Cafe.Client-Debug
+          path: BNet.Cafe.Client/bin/Debug/
+          if-no-files-found: error
+
+      - name: Upload Server
+        uses: actions/upload-artifact@v4
+        with:
+          name: BNet.Cafe.Server-Debug
+          path: BNet.Cafe.Server/bin/
+          if-no-files-found: error
+
+      - name: Upload WebSocket
+        uses: actions/upload-artifact@v4
+        with:
+          name: BNet.Cafe.Websocket-Debug
+          path: BNet.Cafe.Websocket/bin/Debug/
+          if-no-files-found: error
