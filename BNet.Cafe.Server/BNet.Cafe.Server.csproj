@@ -110,8 +110,6 @@
     <Content Include="App\Installation.aspx" />
     <Content Include="App\script.js" />
     <Content Include="App\service-worker.js" />
-    <Content Include="Arduino\lock.txt" />
-    <Content Include="Arduino\placeholder.txt" />
     <Content Include="Assets\BNetAlert\Script.js" />
     <Content Include="Assets\BNetAlert\Style.css" />
     <Content Include="Assets\BNetBadge\Style.css" />
@@ -160,8 +158,6 @@
     <Content Include="Assets\BNetModal\Script.js" />
     <Content Include="Assets\BNetModal\Style.css" />
     <Content Include="Assets\Pages\RemoteMessaging.js" />
-    <Content Include="Assets\Pages\Wallpaper.css" />
-    <Content Include="Assets\Pages\Wallpaper.js" />
     <Content Include="Assets\Portal\Script.js" />
     <Content Include="Assets\Portal\Style.css" />
     <Content Include="Assets\ResetPassword\Script.js" />
@@ -171,7 +167,6 @@
     <Content Include="Assets\Vendo\Script.js" />
     <Content Include="Assets\Vendo\Style.css" />
     <Content Include="BNetPage.aspx" />
-    <Content Include="BNetVendoMachine.aspx" />
     <Content Include="ClientChat.aspx" />
     <Content Include="Databases\Queries\Balances\GetCount.sql" />
     <Content Include="Databases\Queries\ChatMessages\Create.sql" />
@@ -244,7 +239,6 @@
     <Content Include="Forms\Suppliers.ascx" />
     <Content Include="Forms\TopUp.ascx" />
     <Content Include="Forms\UserBonus.ascx" />
-    <Content Include="Forms\Wallpaper.ascx" />
     <Content Include="Offline Packages\zxing\zxing.dll" />
     <Content Include="ServerChat.html" />
     <Content Include="Shop.aspx" />
@@ -316,7 +310,6 @@
     <Content Include="Offline Packages\System.Runtime.Caching\System.Runtime.Caching.dll" />
     <Content Include="Offline Packages\System.Runtime.CompilerServices.Unsafe\System.Runtime.CompilerServices.Unsafe.dll" />
     <Content Include="Portal.aspx" />
-    <Content Include="Remote.html" />
     <Content Include="Global.asax" />
     <Content Include="Login.aspx" />
     <Content Include="ResetPassword.aspx" />
@@ -388,13 +381,6 @@
     </Compile>
     <Compile Include="BNetPage.aspx.designer.cs">
       <DependentUpon>BNetPage.aspx</DependentUpon>
-    </Compile>
-    <Compile Include="BNetVendoMachine.aspx.cs">
-      <DependentUpon>BNetVendoMachine.aspx</DependentUpon>
-      <SubType>ASPXCodeBehind</SubType>
-    </Compile>
-    <Compile Include="BNetVendoMachine.aspx.designer.cs">
-      <DependentUpon>BNetVendoMachine.aspx</DependentUpon>
     </Compile>
     <Compile Include="Callback.aspx.cs">
       <DependentUpon>Callback.aspx</DependentUpon>
@@ -778,13 +764,6 @@
     <Compile Include="Forms\UserTopUp.ascx.designer.cs">
       <DependentUpon>UserTopUp.ascx</DependentUpon>
     </Compile>
-    <Compile Include="Forms\Wallpaper.ascx.cs">
-      <DependentUpon>Wallpaper.ascx</DependentUpon>
-      <SubType>ASPXCodeBehind</SubType>
-    </Compile>
-    <Compile Include="Forms\Wallpaper.ascx.designer.cs">
-      <DependentUpon>Wallpaper.ascx</DependentUpon>
-    </Compile>
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
@@ -866,7 +845,6 @@
     <Content Include="Ashx\GetWallpaperCountHandler.ashx" />
     <Content Include="Ashx\DownloadWallpaperHandler.ashx" />
     <Content Include="App\manifest-template.json" />
-    <Content Include="App\manifest.json" />
     <Content Include="Ashx\GetChatMessagesHandler.ashx" />
     <Content Include="Ashx\DeleteChatMessagesHandler.ashx" />
     <Content Include="Ashx\SaveChatMessageHandler.ashx" />
