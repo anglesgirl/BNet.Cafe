@@ -75,3 +75,58 @@ jobs:
           name: BNet.Cafe.Websocket-Debug
           path: BNet.Cafe.Websocket/bin/Debug/
           if-no-files-found: error
+
+  # One-click installer for cafe owners (Inno Setup):
+  # IIS via DISM + bundled MariaDB MSI + Server/Client/WebSocket.
+  # The owner just double-clicks the .exe; no XAMPP, no manual IIS setup.
+  installer:
+    needs: build
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Server package
+        uses: actions/download-artifact@v4
+        with:
+          name: BNet.Cafe.Server-Debug
+          path: server-package
+
+      - name: Download Client
+        uses: actions/download-artifact@v4
+        with:
+          name: BNet.Cafe.Client-Debug
+          path: BNet.Cafe.Client/bin/Debug
+
+      - name: Download WebSocket
+        uses: actions/download-artifact@v4
+        with:
+          name: BNet.Cafe.Websocket-Debug
+          path: BNet.Cafe.Websocket/bin/Debug
+
+      # downloads.mariadb.com 522s from some networks; the archive mirror is stable.
+      - name: Download MariaDB MSI
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path installer/redist | Out-Null
+          Invoke-WebRequest -Uri "https://archive.mariadb.org/mariadb-11.4.5/winx64-packages/mariadb-11.4.5-winx64.msi" -OutFile "installer/redist/mariadb-11.4.5-winx64.msi"
+          $f = Get-Item "installer/redist/mariadb-11.4.5-winx64.msi"
+          Write-Host "MariaDB MSI: $($f.Length) bytes"
+          if ($f.Length -lt 50000000) { throw "MariaDB MSI suspiciously small, download may have failed." }
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Compile installer
+        shell: pwsh
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer/BNetCafe.iss
+          Get-ChildItem installer-output -Recurse | Select-Object FullName, Length
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: BNetCafe-Setup
+          path: installer-output/BNetCafe-Setup-*.exe
+          if-no-files-found: error

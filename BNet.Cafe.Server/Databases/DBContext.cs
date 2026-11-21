@@ -19,7 +19,17 @@ namespace BNet.Cafe.Server.Databases
             string hostname = "localhost";
             string port = "3306";
             string user = "root";
+            // DB password: read from Web.config appSettings "DbPassword" (set by the
+            // one-click installer, which installs MariaDB with a random root password).
+            // Falls back to "" so manual XAMPP installs (root, no password) keep working.
             string password = "";
+            try
+            {
+                string configured = System.Configuration.ConfigurationManager.AppSettings["DbPassword"];
+                if (!string.IsNullOrEmpty(configured))
+                    password = configured;
+            }
+            catch { /* Web.config unreadable: keep the empty-password default */ }
             string database = ("" == DBSchema) ? "" : $"database={DBSchema}";
 
             string connectionString = $"server={hostname};port={port};user id={user};password={password};{database};" +
